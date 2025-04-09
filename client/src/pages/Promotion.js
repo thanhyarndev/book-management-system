@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Table,
-  Input,
   Button,
-  Space,
+  Input,
   Modal,
   Form,
+  Select,
+  DatePicker,
+  Space,
   Popconfirm,
   message,
-  DatePicker,
-  Select,
 } from "antd";
 import {
-  SearchOutlined,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -25,81 +26,82 @@ const Promotion = () => {
   const [form] = Form.useForm();
   const [promotions, setPromotions] = useState([]);
   const [filteredPromotions, setFilteredPromotions] = useState([]);
-  const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingPromo, setEditingPromo] = useState(null);
+  const [editingPromotion, setEditingPromotion] = useState(null);
+  const [searchText, setSearchText] = useState("");
+
+  const fetchPromotions = async () => {
+    try {
+      const res = await axios.get("http://localhost:3001/api/promotion");
+      setPromotions(res.data);
+      setFilteredPromotions(res.data);
+    } catch (err) {
+      message.error("Không thể tải danh sách khuyến mãi");
+    }
+  };
 
   useEffect(() => {
-    const mockData = [
-      {
-        id: 1,
-        code: "SALE10",
-        description: "Giảm 10% cho đơn trên 200K",
-        type: "percent",
-        value: 10,
-        expiry: "2025-12-31",
-      },
-      {
-        id: 2,
-        code: "FREESHIP",
-        description: "Giảm 20.000 cho đơn từ 300K",
-        type: "amount",
-        value: 20000,
-        expiry: "2025-06-30",
-      },
-    ];
-    setPromotions(mockData);
-    setFilteredPromotions(mockData);
+    fetchPromotions();
   }, []);
 
   const showModal = (record = null) => {
-    setEditingPromo(record);
-    form.setFieldsValue({
-      ...record,
-      expiry: record ? dayjs(record.expiry) : null,
-    });
+    setEditingPromotion(record);
+    if (record) {
+      form.setFieldsValue({
+        ...record,
+        expiryDate: dayjs(record.expiryDate),
+      });
+    } else {
+      form.resetFields();
+    }
     setIsModalVisible(true);
   };
 
   const handleCancel = () => {
-    form.resetFields();
-    setEditingPromo(null);
     setIsModalVisible(false);
+    setEditingPromotion(null);
+    form.resetFields();
   };
 
-  const handleSave = (values) => {
-    const newData = {
+  const handleSave = async (values) => {
+    const payload = {
       ...values,
-      id: editingPromo ? editingPromo.id : Date.now(),
-      expiry: values.expiry.format("YYYY-MM-DD"),
+      expiryDate: values.expiryDate.toISOString(),
     };
-    const updated = editingPromo
-      ? promotions.map((promo) =>
-          promo.id === editingPromo.id ? newData : promo
-        )
-      : [...promotions, newData];
-    setPromotions(updated);
-    setFilteredPromotions(updated);
-    message.success(
-      editingPromo ? "Cập nhật thành công" : "Thêm mã giảm giá thành công"
-    );
-    handleCancel();
+
+    try {
+      if (editingPromotion) {
+        await axios.put(
+          `http://localhost:3001/api/promotion/${editingPromotion._id}`,
+          payload
+        );
+        message.success("Cập nhật khuyến mãi thành công!");
+      } else {
+        await axios.post("http://localhost:3001/api/promotion", payload);
+        message.success("Thêm khuyến mãi mới thành công!");
+      }
+      handleCancel();
+      fetchPromotions();
+    } catch (err) {
+      message.error("Lỗi khi lưu khuyến mãi");
+    }
   };
 
-  const handleDelete = (id) => {
-    const updated = promotions.filter((p) => p.id !== id);
-    setPromotions(updated);
-    setFilteredPromotions(updated);
-    message.success("Đã xóa mã giảm giá");
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:3001/api/promotion/${id}`);
+      message.success("Xóa khuyến mãi thành công!");
+      fetchPromotions();
+    } catch (err) {
+      message.error("Không thể xóa khuyến mãi");
+    }
   };
 
   const handleSearch = (e) => {
     const text = e.target.value.toLowerCase();
     setSearchText(text);
-    const filtered = promotions.filter(
-      (p) =>
-        p.code.toLowerCase().includes(text) ||
-        p.description.toLowerCase().includes(text)
+    const filtered = promotions.filter((p) =>
+      p.code.toLowerCase().includes(text)
     );
     setFilteredPromotions(filtered);
   };
@@ -108,29 +110,50 @@ const Promotion = () => {
     {
       title: "Mã",
       dataIndex: "code",
+      key: "code",
     },
     {
       title: "Mô tả",
       dataIndex: "description",
+      key: "description",
     },
     {
       title: "Loại",
       dataIndex: "type",
-      render: (type) => (type === "percent" ? "%" : "₫"),
+      key: "type",
+      render: (type) => (type === "percentage" ? "%" : "VNĐ"),
     },
     {
       title: "Giá trị",
       dataIndex: "value",
-      render: (text, record) =>
-        record.type === "percent" ? `${text}%` : `${text.toLocaleString()} ₫`,
+      key: "value",
+    },
+    {
+      title: "Giá trị đơn tối thiểu",
+      dataIndex: "minOrderValue",
+      key: "minOrderValue",
+    },
+    {
+      title: "Số lượt áp dụng",
+      dataIndex: "quantity",
+      key: "quantity",
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => status === "active" ? "Hoạt động" : "Vô hiệu hoá",
     },
     {
       title: "Hạn sử dụng",
-      dataIndex: "expiry",
+      dataIndex: "expiryDate",
+      key: "expiryDate",
+      render: (date) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
       title: "Hành động",
-      render: (_, record) => (
+      key: "action",
+      render: (text, record) => (
         <Space>
           <Button
             icon={<EditOutlined />}
@@ -140,8 +163,8 @@ const Promotion = () => {
             Sửa
           </Button>
           <Popconfirm
-            title="Xóa mã này?"
-            onConfirm={() => handleDelete(record.id)}
+            title="Bạn có chắc muốn xóa khuyến mãi này?"
+            onConfirm={() => handleDelete(record._id)}
           >
             <Button icon={<DeleteOutlined />} type="link" danger>
               Xóa
@@ -154,77 +177,91 @@ const Promotion = () => {
 
   return (
     <div>
-      <div
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
         <Input
-          placeholder="Tìm kiếm mã giảm giá..."
+          placeholder="Tìm kiếm theo mã..."
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={handleSearch}
           style={{ width: 300 }}
         />
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => showModal()}
-        >
-          Thêm mã
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
+          Thêm khuyến mãi
         </Button>
       </div>
 
       <Table
         columns={columns}
         dataSource={filteredPromotions}
-        rowKey="id"
+        rowKey="_id"
         pagination={{ pageSize: 5 }}
       />
 
       <Modal
-        title={editingPromo ? "Cập nhật mã giảm giá" : "Thêm mã giảm giá"}
+        title={editingPromotion ? "Cập nhật khuyến mãi" : "Thêm khuyến mãi"}
         open={isModalVisible}
         onCancel={handleCancel}
         onOk={() => form.submit()}
-        okText={editingPromo ? "Cập nhật" : "Thêm"}
+        okText={editingPromotion ? "Cập nhật" : "Thêm"}
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Form.Item
             name="code"
-            label="Mã giảm giá"
-            rules={[{ required: true, message: "Nhập mã" }]}
+            label="Mã khuyến mãi"
+            rules={[{ required: true, message: "Vui lòng nhập mã" }]}
           >
             <Input />
           </Form.Item>
           <Form.Item name="description" label="Mô tả">
-            <Input />
+            <Input.TextArea rows={2} />
           </Form.Item>
           <Form.Item
             name="type"
             label="Loại giảm giá"
-            rules={[{ required: true }]}
+            rules={[{ required: true, message: "Vui lòng chọn loại" }]}
           >
             <Select>
-              <Option value="percent">Phần trăm</Option>
-              <Option value="amount">Số tiền</Option>
+              <Option value="percentage">Phần trăm (%)</Option>
+              <Option value="fixed">Cố định (VNĐ)</Option>
             </Select>
           </Form.Item>
           <Form.Item
             name="value"
-            label="Giá trị"
-            rules={[{ required: true, message: "Nhập giá trị" }]}
+            label="Giá trị giảm"
+            rules={[{ required: true, message: "Vui lòng nhập giá trị" }]}
           >
             <Input type="number" />
           </Form.Item>
           <Form.Item
-            name="expiry"
-            label="Hạn sử dụng"
-            rules={[{ required: true, message: "Chọn ngày" }]}
+            name="minOrderValue"
+            label="Giá trị đơn hàng tối thiểu"
+            rules={[{ required: true, message: "Vui lòng nhập giá trị tối thiểu" }]}
           >
-            <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
+            <Input type="number" />
+          </Form.Item>
+          <Form.Item
+            name="quantity"
+            label="Số lượt áp dụng"
+            rules={[{ required: true, message: "Vui lòng nhập số lượt áp dụng" }]}
+          >
+            <Input type="number" />
+          </Form.Item>
+          <Form.Item
+            name="status"
+            label="Trạng thái"
+            rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
+          >
+            <Select>
+              <Option value="active">Hoạt động</Option>
+              <Option value="inactive">Vô hiệu hoá</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="expiryDate"
+            label="Hạn sử dụng"
+            rules={[{ required: true, message: "Vui lòng chọn ngày hết hạn" }]}
+          >
+            <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
           </Form.Item>
         </Form>
       </Modal>

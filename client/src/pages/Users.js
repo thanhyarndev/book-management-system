@@ -1,140 +1,132 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Table,
   Button,
   Input,
   Modal,
   Form,
+  Select,
   Space,
   Popconfirm,
   message,
 } from "antd";
 import {
-  SearchOutlined,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
+
+const { Option } = Select;
 
 const Users = () => {
   const [form] = Form.useForm();
   const [users, setUsers] = useState([]);
-  const [searchText, setSearchText] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  // Mock data
-  const mockUsers = [
-    {
-      id: 1,
-      name: "Nguyễn Văn A",
-      email: "vana@gmail.com",
-      role: "admin",
-    },
-    {
-      id: 2,
-      name: "Trần Thị B",
-      email: "tranb@gmail.com",
-      role: "user",
-    },
-    {
-      id: 3,
-      name: "Lê Văn C",
-      email: "levanc@gmail.com",
-      role: "user",
-    },
-  ];
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get("http://localhost:3001/api/user");
+      setUsers(res.data);
+      setFilteredUsers(res.data);
+    } catch (err) {
+      message.error("Không thể tải danh sách người dùng");
+    }
+  };
 
   useEffect(() => {
-    setUsers(mockUsers);
-    setFilteredUsers(mockUsers);
+    fetchUsers();
   }, []);
 
   const showModal = (record = null) => {
     setEditingUser(record);
-    form.setFieldsValue(record || { name: "", email: "", role: "user" });
+    form.setFieldsValue(record || {});
     setIsModalVisible(true);
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
-    form.resetFields();
     setEditingUser(null);
+    form.resetFields();
   };
 
-  const handleSave = (values) => {
-    if (editingUser) {
-      const updated = users.map((u) =>
-        u.id === editingUser.id ? { ...u, ...values } : u
-      );
-      setUsers(updated);
-      setFilteredUsers(updated);
-      message.success("Cập nhật người dùng thành công!");
-    } else {
-      const newUser = {
-        id: Date.now(),
-        ...values,
-      };
-      const updated = [...users, newUser];
-      setUsers(updated);
-      setFilteredUsers(updated);
-      message.success("Thêm người dùng mới thành công!");
+  const handleSave = async (values) => {
+    try {
+      if (editingUser) {
+        await axios.put(`http://localhost:3001/api/user/${editingUser._id}`, values);
+        message.success("Cập nhật người dùng thành công!");
+      } else {
+        await axios.post("http://localhost:3001/api/user", values);
+        message.success("Thêm người dùng mới thành công!");
+      }
+      handleCancel();
+      fetchUsers();
+    } catch (err) {
+      message.error("Lỗi khi lưu người dùng");
     }
-    handleCancel();
   };
 
-  const handleDelete = (id) => {
-    const updated = users.filter((u) => u.id !== id);
-    setUsers(updated);
-    setFilteredUsers(updated);
-    message.success("Xóa người dùng thành công!");
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:3001/api/user/${id}`);
+      message.success("Xóa người dùng thành công!");
+      fetchUsers();
+    } catch (err) {
+      message.error("Không thể xóa người dùng");
+    }
   };
 
   const handleSearch = (e) => {
     const text = e.target.value.toLowerCase();
     setSearchText(text);
     const filtered = users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(text) ||
-        u.email.toLowerCase().includes(text)
+      (u) => u.email.toLowerCase().includes(text) || u.firstName.toLowerCase().includes(text)
     );
     setFilteredUsers(filtered);
   };
 
   const columns = [
     {
-      title: "Tên",
-      dataIndex: "name",
-      key: "name",
-    },
-    {
       title: "Email",
       dataIndex: "email",
       key: "email",
     },
     {
+      title: "Họ",
+      dataIndex: "firstName",
+      key: "firstName",
+    },
+    {
+      title: "Tên",
+      dataIndex: "lastName",
+      key: "lastName",
+    },
+    {
       title: "Vai trò",
       dataIndex: "role",
       key: "role",
+      render: (role) => (role === "admin" ? "Quản trị" : "Nhân viên"),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "accountStatus",
+      key: "accountStatus",
+      render: (status) => (status === "active" ? "Hoạt động" : "Bị chặn"),
     },
     {
       title: "Hành động",
       key: "action",
       render: (text, record) => (
         <Space>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => showModal(record)}
-            type="link"
-          >
+          <Button icon={<EditOutlined />} type="link" onClick={() => showModal(record)}>
             Sửa
           </Button>
-          <Popconfirm
-            title="Bạn có chắc muốn xóa người dùng này?"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button icon={<DeleteOutlined />} danger type="link">
+          <Popconfirm title="Bạn có chắc muốn xóa người dùng này?" onConfirm={() => handleDelete(record._id)}>
+            <Button icon={<DeleteOutlined />} type="link" danger>
               Xóa
             </Button>
           </Popconfirm>
@@ -145,35 +137,20 @@ const Users = () => {
 
   return (
     <div>
-      <div
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
         <Input
-          placeholder="Tìm kiếm theo tên hoặc email..."
+          placeholder="Tìm kiếm theo email hoặc tên"
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={handleSearch}
-          style={{ width: "300px" }}
+          style={{ width: 300 }}
         />
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => showModal()}
-        >
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
           Thêm người dùng
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={filteredUsers}
-        rowKey="id"
-        pagination={{ pageSize: 5 }}
-      />
+      <Table columns={columns} dataSource={filteredUsers} rowKey="_id" pagination={{ pageSize: 5 }} />
 
       <Modal
         title={editingUser ? "Cập nhật người dùng" : "Thêm người dùng"}
@@ -184,21 +161,54 @@ const Users = () => {
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Form.Item
-            name="name"
+            name="email"
+            label="Email"
+            rules={[{ required: true, message: "Vui lòng nhập email" }]}
+          >
+            <Input type="email" disabled={!!editingUser} />
+          </Form.Item>
+          {!editingUser && (
+            <Form.Item
+              name="password"
+              label="Mật khẩu"
+              rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
+            >
+              <Input.Password />
+            </Form.Item>
+          )}
+          <Form.Item
+            name="firstName"
+            label="Họ"
+            rules={[{ required: true, message: "Vui lòng nhập họ" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="lastName"
             label="Tên"
             rules={[{ required: true, message: "Vui lòng nhập tên" }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
-            name="email"
-            label="Email"
-            rules={[{ required: true, message: "Vui lòng nhập email" }]}
+            name="role"
+            label="Vai trò"
+            rules={[{ required: true, message: "Vui lòng chọn vai trò" }]}
           >
-            <Input />
+            <Select>
+              <Option value="admin">Quản trị</Option>
+              <Option value="employee">Nhân viên</Option>
+            </Select>
           </Form.Item>
-          <Form.Item name="role" label="Vai trò">
-            <Input placeholder="admin hoặc user" />
+          <Form.Item
+            name="accountStatus"
+            label="Trạng thái"
+            rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
+          >
+            <Select>
+              <Option value="active">Hoạt động</Option>
+              <Option value="block">Bị chặn</Option>
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

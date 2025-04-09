@@ -24,11 +24,7 @@ const userSchema = new mongoose.Schema({
     enum: ["admin", "employee"],
     default: "employee",
   },
-  employeeId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Employee',
-    default: null,
-  },
+ 
   accountStatus: {
     type: String,
     enum: ["active", "block"],

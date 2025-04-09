@@ -41,7 +41,7 @@ const Categories = () => {
 
   const showModal = (record = null) => {
     setEditingCategory(record);
-    form.setFieldsValue(record || { name: "" });
+    form.setFieldsValue(record || { name: "", description: "" });
     setIsModalVisible(true);
   };
 
@@ -83,8 +83,10 @@ const Categories = () => {
   const handleSearch = (e) => {
     const text = e.target.value.toLowerCase();
     setSearchText(text);
-    const filtered = categories.filter((c) =>
-      c.name.toLowerCase().includes(text)
+    const filtered = categories.filter(
+      (c) =>
+        c.name.toLowerCase().includes(text) ||
+        (c.description && c.description.toLowerCase().includes(text))
     );
     setFilteredCategories(filtered);
   };
@@ -94,6 +96,11 @@ const Categories = () => {
       title: "Tên thể loại",
       dataIndex: "name",
       key: "name",
+    },
+    {
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
     },
     {
       title: "Hành động",
@@ -166,6 +173,9 @@ const Categories = () => {
             rules={[{ required: true, message: "Vui lòng nhập tên thể loại" }]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item name="description" label="Mô tả">
+            <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
       </Modal>

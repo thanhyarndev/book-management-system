@@ -1,38 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const user = require("../controller/userController");
+const userController = require("../controller/userController");
 
-// Lấy tất cả người dùng
-router.get("/get-users", user.getUsers);
-
-// Tạo mới người dùng
-router.post("/create-user", user.createNewUser);
-
-// Cập nhật người dùng
-router.put("/update-user/:id", user.updateUser);
-
-// Xóa người dùng
-router.delete("/delete-user/:id", user.deleteUser);
-
-// Lấy thông tin người dùng theo ID
-router.get("/get-user/:id", user.getUserById);
-
-// Thay đổi trạng thái của người dùng
-router.patch("/change-status/:id", user.changeUserStatus);
-
-// Đăng ký người dùng
-router.post("/register", user.register);
-
-// Đăng nhập người dùng
-router.post("/login", user.login);
-
-// Kiểm tra email và tạo OTP
-router.post("/verify-email", user.verifyEmailAndGenerateOTP);
-
-// API xác thực OTP
-router.post("/verify-otp", user.verifyOTP);
-
-// API đặt lại mật khẩu
-router.post("/reset-password", user.resetPassword);
+// CRUD cơ bản
+router.get("/", userController.getAllUsers);
+router.get("/:id", userController.getUserById);
+router.post("/", userController.createUser);
+router.put("/:id", userController.updateUser);
+router.delete("/:id", userController.deleteUser);
 
 module.exports = router;

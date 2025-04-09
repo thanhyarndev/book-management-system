@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Table,
   Button,
@@ -8,13 +9,13 @@ import {
   Space,
   Popconfirm,
   message,
+  Select,
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
-  BookOutlined,
 } from "@ant-design/icons";
 
 const Books = () => {
@@ -24,34 +25,40 @@ const Books = () => {
   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
+  const [imageBase64, setImageBase64] = useState("");
+  const [categories, setCategories] = useState([]);
 
-  // Mock Data
+  const fetchBooks = async () => {
+    try {
+      const res = await axios.get("http://localhost:3001/api/book");
+      setBooks(res.data);
+      setFilteredBooks(res.data);
+    } catch (err) {
+      message.error("Không thể tải danh sách sách");
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get("http://localhost:3001/api/category");
+      setCategories(res.data);
+    } catch (err) {
+      message.error("Không thể tải danh sách thể loại");
+    }
+  };
+
   useEffect(() => {
-    const mockBooks = [
-      {
-        id: 1,
-        title: "Dế Mèn Phiêu Lưu Ký",
-        author: "Tô Hoài",
-        category: "Tiểu thuyết",
-        price: 50000,
-        quantity: 20,
-      },
-      {
-        id: 2,
-        title: "Lập Trình Python Cơ Bản",
-        author: "Nguyễn Văn Lập",
-        category: "Giáo dục",
-        price: 120000,
-        quantity: 10,
-      },
-    ];
-    setBooks(mockBooks);
-    setFilteredBooks(mockBooks);
+    fetchBooks();
+    fetchCategories();
   }, []);
 
   const showModal = (record = null) => {
     setEditingBook(record);
-    form.setFieldsValue(record || {});
+    setImageBase64(record?.image || "");
+    form.setFieldsValue({
+      ...record,
+      category: record?.category?._id || "",
+    });
     setIsModalVisible(true);
   };
 
@@ -59,34 +66,35 @@ const Books = () => {
     setIsModalVisible(false);
     form.resetFields();
     setEditingBook(null);
+    setImageBase64("");
   };
 
-  const handleSave = (values) => {
-    if (editingBook) {
-      const updated = books.map((b) =>
-        b.id === editingBook.id ? { ...b, ...values } : b
-      );
-      setBooks(updated);
-      setFilteredBooks(updated);
-      message.success("Cập nhật sách thành công!");
-    } else {
-      const newBook = {
-        id: Date.now(),
-        ...values,
-      };
-      const updated = [...books, newBook];
-      setBooks(updated);
-      setFilteredBooks(updated);
-      message.success("Thêm sách mới thành công!");
+  const handleSave = async (values) => {
+    const payload = { ...values, image: imageBase64 };
+
+    try {
+      if (editingBook) {
+        await axios.put(`http://localhost:3001/api/book/${editingBook._id}`, payload);
+        message.success("Cập nhật sách thành công!");
+      } else {
+        await axios.post("http://localhost:3001/api/book", payload);
+        message.success("Thêm sách mới thành công!");
+      }
+      handleCancel();
+      fetchBooks();
+    } catch (err) {
+      message.error("Lỗi khi lưu sách");
     }
-    handleCancel();
   };
 
-  const handleDelete = (id) => {
-    const updated = books.filter((b) => b.id !== id);
-    setBooks(updated);
-    setFilteredBooks(updated);
-    message.success("Xóa sách thành công!");
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:3001/api/book/${id}`);
+      message.success("Xóa sách thành công!");
+      fetchBooks();
+    } catch (err) {
+      message.error("Không thể xóa sách");
+    }
   };
 
   const handleSearch = (e) => {
@@ -100,7 +108,23 @@ const Books = () => {
     setFilteredBooks(filtered);
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageBase64(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const columns = [
+    {
+      title: "Ảnh",
+      dataIndex: "image",
+      key: "image",
+      render: (img) => img && <img src={img} alt="book" width="40" height="60" />,
+    },
     {
       title: "Tên sách",
       dataIndex: "title",
@@ -113,7 +137,7 @@ const Books = () => {
     },
     {
       title: "Thể loại",
-      dataIndex: "category",
+      dataIndex: ["category", "name"],
       key: "category",
     },
     {
@@ -141,7 +165,7 @@ const Books = () => {
           </Button>
           <Popconfirm
             title="Bạn có chắc muốn xóa sách này?"
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={() => handleDelete(record._id)}
           >
             <Button icon={<DeleteOutlined />} type="link" danger>
               Xóa
@@ -180,7 +204,7 @@ const Books = () => {
       <Table
         columns={columns}
         dataSource={filteredBooks}
-        rowKey="id"
+        rowKey="_id"
         pagination={{ pageSize: 5 }}
       />
 
@@ -192,6 +216,13 @@ const Books = () => {
         okText={editingBook ? "Cập nhật" : "Thêm"}
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
+          <Form.Item
+            name="sku"
+            label="Mã SKU"
+            rules={[{ required: true, message: "Vui lòng nhập mã SKU" }]}
+          >
+            <Input />
+          </Form.Item>
           <Form.Item
             name="title"
             label="Tên sách"
@@ -206,8 +237,18 @@ const Books = () => {
           >
             <Input />
           </Form.Item>
-          <Form.Item name="category" label="Thể loại">
-            <Input placeholder="Ví dụ: Tiểu thuyết, Khoa học..." />
+          <Form.Item
+            name="category"
+            label="Thể loại"
+            rules={[{ required: true, message: "Vui lòng chọn thể loại" }]}
+          >
+            <Select placeholder="Chọn thể loại">
+              {categories.map((cat) => (
+                <Select.Option key={cat._id} value={cat._id}>
+                  {cat.name}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item
             name="price"
@@ -222,6 +263,12 @@ const Books = () => {
             rules={[{ required: true, message: "Vui lòng nhập số lượng" }]}
           >
             <Input type="number" />
+          </Form.Item>
+          <Form.Item label="Ảnh sách">
+            <Input type="file" accept="image/*" onChange={handleImageUpload} />
+            {imageBase64 && (
+              <img src={imageBase64} alt="Preview" style={{ marginTop: 8, width: 100 }} />
+            )}
           </Form.Item>
         </Form>
       </Modal>
