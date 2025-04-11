@@ -10,7 +10,6 @@ import {
   Space,
   Popconfirm,
   message,
-  Form,
 } from "antd";
 import axios from "axios";
 import {
@@ -28,6 +27,7 @@ const BookPOS = () => {
   const [customerName, setCustomerName] = useState("");
   const [isExistingCustomer, setIsExistingCustomer] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
+  const [note, setNote] = useState("");
 
   const pageSize = 18;
 
@@ -44,17 +44,37 @@ const BookPOS = () => {
     }
   };
 
-  const filteredProducts = allProducts.filter((product) =>
-    product.title.toLowerCase().includes(searchText.toLowerCase())
-  );
-  const pagedProducts = filteredProducts.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const validateVietnamPhone = (phone) => /^0[35789]\d{8}$/.test(phone);
+
+  const handleCheckCustomer = async () => {
+    if (!validateVietnamPhone(phone)) {
+      message.warning("Số điện thoại không hợp lệ. Sẽ xử lý như khách lẻ.");
+      setCustomerName("Khách lẻ");
+      setIsExistingCustomer(false);
+      return;
+    }
+
+    try {
+      const res = await axios.get(
+        `http://localhost:3001/api/customer/phone/${phone}`
+      );
+      const customer = res.data;
+      setCustomerName(customer.name);
+      setIsExistingCustomer(true);
+      message.success("Đã tìm thấy khách hàng");
+    } catch {
+      setCustomerName("");
+      setIsExistingCustomer(false);
+      message.info("Không tìm thấy khách hàng. Vui lòng nhập tên để tạo mới.");
+    }
+  };
 
   const addToCart = (product) => {
     const existing = selectedItems.find((item) => item._id === product._id);
     if (existing) {
+      if (existing.quantity + 1 > product.quantity) {
+        return message.warning("Vượt quá số lượng tồn kho");
+      }
       const updated = selectedItems.map((item) =>
         item._id === product._id
           ? { ...item, quantity: item.quantity + 1 }
@@ -62,6 +82,9 @@ const BookPOS = () => {
       );
       setSelectedItems(updated);
     } else {
+      if (product.quantity < 1) {
+        return message.warning("Sản phẩm đã hết hàng");
+      }
       setSelectedItems([...selectedItems, { ...product, quantity: 1 }]);
     }
   };
@@ -71,40 +94,62 @@ const BookPOS = () => {
     message.success("Đã xóa sản phẩm khỏi đơn hàng");
   };
 
-  const handleCheckCustomer = () => {
-    if (phone === "0123456789") {
-      setCustomerName("Nguyễn Văn A");
-      setIsExistingCustomer(true);
-      message.success("Đã tìm thấy khách hàng");
-    } else {
+  const handleCheckout = async () => {
+    if (!selectedItems.length) {
+      return message.error("Đơn hàng trống!");
+    }
+
+    const isValidPhone = validateVietnamPhone(phone);
+
+    if (isValidPhone && !customerName.trim()) {
+      return message.error("Vui lòng nhập tên khách hàng");
+    }
+
+    const payload = {
+      customerName: isValidPhone ? customerName : "Khách lẻ",
+      customerPhone: isValidPhone ? phone : "0000000000",
+      note,
+      totalAmount,
+      items: selectedItems.map((item) => ({
+        product: item._id,
+        title: item.title,
+        sku: item.sku,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+    };
+
+    try {
+      await axios.post("http://localhost:3001/api/order", payload);
+
+      await Promise.all(
+        selectedItems.map((item) =>
+          axios.put(`http://localhost:3001/api/book/${item._id}/decrease`, {
+            quantity: item.quantity,
+          })
+        )
+      );
+
+      message.success("Thanh toán thành công!");
+      setSelectedItems([]);
+      setPhone("");
       setCustomerName("");
       setIsExistingCustomer(false);
-      message.info("Không tìm thấy khách hàng. Vui lòng nhập tên để tạo mới.");
+      setNote("");
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      message.error("Đã xảy ra lỗi khi thanh toán");
     }
   };
 
-  const handleCheckout = () => {
-    if (!phone) {
-      message.error("Vui lòng nhập số điện thoại khách hàng");
-      return;
-    }
-    if (!customerName) {
-      message.error("Vui lòng nhập tên khách hàng để tạo mới");
-      return;
-    }
-    if (!selectedItems.length) {
-      message.error("Đơn hàng trống!");
-      return;
-    }
-    if (!isExistingCustomer) {
-      message.success("Tạo khách hàng mới thành công");
-    }
-    message.success("Thanh toán thành công!");
-    setSelectedItems([]);
-    setPhone("");
-    setCustomerName("");
-    setIsExistingCustomer(false);
-  };
+  const filteredProducts = allProducts.filter((product) =>
+    product.title.toLowerCase().includes(searchText.toLowerCase())
+  );
+  const pagedProducts = filteredProducts.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const columns = [
     {
@@ -167,7 +212,12 @@ const BookPOS = () => {
           size="small"
         />
         <div style={{ marginTop: 16 }}>
-          <Input.TextArea placeholder="Ghi chú đơn hàng..." rows={2} />
+          <Input.TextArea
+            placeholder="Ghi chú đơn hàng..."
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
           <div style={{ marginTop: 8, fontWeight: "bold" }}>
             Tổng sản phẩm: {totalQuantity} | Tổng tiền hàng:{" "}
             {totalAmount.toLocaleString()} ₫

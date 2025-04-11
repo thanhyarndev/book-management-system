@@ -25,7 +25,16 @@ class BookController {
   }
 
   async create(req, res) {
-    const { sku, title, author, price, description, quantity, category, image } = req.body;
+    const {
+      sku,
+      title,
+      author,
+      price,
+      description,
+      quantity,
+      category,
+      image,
+    } = req.body;
     if (!sku || !title || !price || quantity == null) {
       return res.status(400).json({ message: "Thiếu thông tin bắt buộc" });
     }
@@ -56,7 +65,16 @@ class BookController {
 
   async update(req, res) {
     const { id } = req.params;
-    const { sku, title, author, price, description, quantity, category, image } = req.body;
+    const {
+      sku,
+      title,
+      author,
+      price,
+      description,
+      quantity,
+      category,
+      image,
+    } = req.body;
 
     try {
       const updated = await Book.findByIdAndUpdate(
@@ -66,7 +84,9 @@ class BookController {
       );
 
       if (!updated) {
-        return res.status(404).json({ message: "Không tìm thấy sách để cập nhật" });
+        return res
+          .status(404)
+          .json({ message: "Không tìm thấy sách để cập nhật" });
       }
 
       res.status(200).json(updated);
@@ -87,6 +107,30 @@ class BookController {
       res.status(500).json({ message: "Lỗi khi xoá sách", err });
     }
   }
+  // Giảm số lượng tồn kho
+  async decreaseStock(req, res) {
+    const { id } = req.params;
+    const { quantity } = req.body;
+
+    try {
+      const product = await Book.findById(id);
+      if (!product)
+        return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+
+      if (product.quantity < quantity) {
+        return res.status(400).json({ message: "Không đủ tồn kho để trừ" });
+      }
+
+      product.quantity -= quantity;
+      await product.save();
+
+      res.status(200).json({ message: "Cập nhật tồn kho thành công", product });
+    } catch (err) {
+      res.status(500).json({ message: "Lỗi khi cập nhật tồn kho", err });
+    }
+  }
 }
+
+
 
 module.exports = new BookController();

@@ -85,6 +85,14 @@ function Sidenav({ color }) {
             <span className="label">Người dùng</span>
           </NavLink>
         </Menu.Item>
+        <Menu.Item key="customers">
+          <NavLink to="/customers">
+            <span className="icon">
+              <UserOutlined style={{ color }} />
+            </span>
+            <span className="label">Khách hàng</span>
+          </NavLink>
+        </Menu.Item>
 
         <Menu.Item key="promotion">
           <NavLink to="/promotion">

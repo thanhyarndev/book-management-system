@@ -13,11 +13,11 @@ const customerSchema = new mongoose.Schema({
   },
   point: {
     type: Number,
-    default: 0
+    default: 0,
   },
   LoyaltyDicountId: {
     type: Schema.Types.ObjectId,
-    ref: 'LoyaltyDiscount',
+    ref: "LoyaltyDiscount",
     default: null,
   },
   createdAt: {

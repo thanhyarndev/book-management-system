@@ -9,5 +9,7 @@ router.get("/:id", bookController.getById);
 router.post("/", bookController.create);
 router.put("/:id", bookController.update);
 router.delete("/:id", bookController.remove);
+router.put("/:id/decrease", bookController.decreaseStock);
+
 
 module.exports = router;
