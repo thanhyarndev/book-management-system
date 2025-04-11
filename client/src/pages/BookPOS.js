@@ -1,5 +1,4 @@
-// src/pages/BookPOS.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Input,
   Button,
@@ -13,30 +12,13 @@ import {
   message,
   Form,
 } from "antd";
+import axios from "axios";
 import {
   DeleteOutlined,
   SearchOutlined,
   UserOutlined,
   PhoneOutlined,
 } from "@ant-design/icons";
-// import "./BookPOS.css";
-
-const allProductsMock = [
-  {
-    id: 1,
-    sku: "BOOK001",
-    title: "Đắc Nhân Tâm",
-    price: 89000,
-    image: "https://via.placeholder.com/100",
-  },
-  {
-    id: 2,
-    sku: "BOOK002",
-    title: "7 Thói Quen Hiệu Quả",
-    price: 109000,
-    image: "https://via.placeholder.com/100",
-  },
-];
 
 const BookPOS = () => {
   const [selectedItems, setSelectedItems] = useState([]);
@@ -45,9 +27,24 @@ const BookPOS = () => {
   const [phone, setPhone] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [isExistingCustomer, setIsExistingCustomer] = useState(false);
+  const [allProducts, setAllProducts] = useState([]);
 
   const pageSize = 18;
-  const filteredProducts = allProductsMock.filter((product) =>
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const res = await axios.get("http://localhost:3001/api/book");
+      setAllProducts(res.data);
+    } catch (err) {
+      message.error("Lỗi khi tải danh sách sản phẩm");
+    }
+  };
+
+  const filteredProducts = allProducts.filter((product) =>
     product.title.toLowerCase().includes(searchText.toLowerCase())
   );
   const pagedProducts = filteredProducts.slice(
@@ -56,10 +53,12 @@ const BookPOS = () => {
   );
 
   const addToCart = (product) => {
-    const existing = selectedItems.find((item) => item.id === product.id);
+    const existing = selectedItems.find((item) => item._id === product._id);
     if (existing) {
       const updated = selectedItems.map((item) =>
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        item._id === product._id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
       );
       setSelectedItems(updated);
     } else {
@@ -68,7 +67,7 @@ const BookPOS = () => {
   };
 
   const removeItem = (id) => {
-    setSelectedItems(selectedItems.filter((item) => item.id !== id));
+    setSelectedItems(selectedItems.filter((item) => item._id !== id));
     message.success("Đã xóa sản phẩm khỏi đơn hàng");
   };
 
@@ -117,7 +116,7 @@ const BookPOS = () => {
       render: (_, record) => (
         <Popconfirm
           title="Xóa sản phẩm khỏi đơn hàng?"
-          onConfirm={() => removeItem(record.id)}
+          onConfirm={() => removeItem(record._id)}
         >
           <DeleteOutlined style={{ color: "red" }} />
         </Popconfirm>
@@ -164,7 +163,7 @@ const BookPOS = () => {
           columns={columns}
           dataSource={selectedItems}
           pagination={false}
-          rowKey="id"
+          rowKey="_id"
           size="small"
         />
         <div style={{ marginTop: 16 }}>
@@ -205,7 +204,7 @@ const BookPOS = () => {
 
         <Row gutter={[8, 8]}>
           {pagedProducts.map((product) => (
-            <Col span={8} key={product.id}>
+            <Col span={8} key={product._id}>
               <Card
                 hoverable
                 cover={<img alt={product.title} src={product.image} />}
