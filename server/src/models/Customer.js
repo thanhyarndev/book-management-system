@@ -1,35 +1,43 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
 
-const customerSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
+const customerSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    phonenumber: {
+      type: String,
+      required: true,
+      unique: true, // vì bạn dùng số điện thoại để tìm khách hàng
+      trim: true,
+    },
+    totalSpent: {
+      type: Number,
+      default: 0,
+    },
+    visitCount: {
+      type: Number,
+      default: 0,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    lastVisited: {
+      type: Date,
+      default: Date.now,
+    },
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
-  phonenumber: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  point: {
-    type: Number,
-    default: 0,
-  },
-  LoyaltyDicountId: {
-    type: Schema.Types.ObjectId,
-    ref: "LoyaltyDiscount",
-    default: null,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  {
+    timestamps: true, // tự động thêm createdAt và updatedAt
+  }
+);
 
-const Customer = mongoose.model("Customer", customerSchema);
-
-module.exports = Customer;
+module.exports = mongoose.model("Customer", customerSchema);

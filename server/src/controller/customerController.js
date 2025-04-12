@@ -3,8 +3,33 @@ const Customer = require("../models/Customer");
 class CustomerController {
   async getAllCustomers(req, res) {
     try {
-      const customers = await Customer.find().sort({ createdAt: -1 });
-      res.status(200).json(customers);
+      // Lấy tất cả khách hàng, loại bỏ khách lẻ
+      const customers = await Customer.find({
+        phonenumber: { $ne: "0000000000" },
+      }).sort({ createdAt: -1 });
+
+      // Gắn loyaltyLevel cho từng khách hàng
+      const enrichedCustomers = customers.map((customer) => {
+        const total = customer.totalSpent || 0;
+        let loyaltyLevel = "new";
+
+        if (total >= 10000000) {
+          loyaltyLevel = "platinum";
+        } else if (total >= 5000000) {
+          loyaltyLevel = "gold";
+        } else if (total >= 3000000) {
+          loyaltyLevel = "silver";
+        } else if (total >= 1000000) {
+          loyaltyLevel = "bronze";
+        }
+
+        return {
+          ...customer.toObject(),
+          loyaltyLevel,
+        };
+      });
+
+      res.status(200).json(enrichedCustomers);
     } catch (error) {
       res.status(500).json({ message: "Lỗi lấy danh sách khách hàng", error });
     }

@@ -1,15 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Table,
-  Input,
-  Button,
-  Modal,
-  Form,
-  Space,
-  message,
-  Popconfirm,
-} from "antd";
+import { Table, Input, Button, Modal, Form, Space, message } from "antd";
 import { EditOutlined, SearchOutlined } from "@ant-design/icons";
 
 const Customer = () => {
@@ -39,8 +30,8 @@ const Customer = () => {
     setSearchText(value);
     const filtered = customers.filter(
       (customer) =>
-        customer.name.toLowerCase().includes(value) ||
-        customer.phone.includes(value)
+        customer.name?.toLowerCase().includes(value) ||
+        customer.phonenumber?.includes(value)
     );
     setFilteredCustomers(filtered);
   };
@@ -77,7 +68,7 @@ const Customer = () => {
   const columns = [
     {
       title: "SĐT",
-      dataIndex: "phone",
+      dataIndex: "phonenumber",
     },
     {
       title: "Tên khách hàng",
@@ -86,15 +77,18 @@ const Customer = () => {
     {
       title: "Tổng chi tiêu",
       dataIndex: "totalSpent",
-      render: (value) => `${value.toLocaleString()} ₫`,
+      render: (value) =>
+        typeof value === "number" ? `${value.toLocaleString()} ₫` : "0 ₫",
     },
     {
       title: "Số lần mua",
       dataIndex: "visitCount",
+      render: (value) => value || 0,
     },
     {
       title: "Cấp độ",
       dataIndex: "loyaltyLevel",
+      render: (value) => value || "-",
     },
     {
       title: "Hành động",
