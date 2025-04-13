@@ -12,8 +12,6 @@ import { NavLink } from "react-router-dom";
 import logo from "../../assets/images/logo.png";
 
 function Sidenav({ color }) {
-  const userRole = localStorage.getItem("role"); // Lấy role từ localStorage
-
   const dashboardIcon = (
     <svg
       width="20"
@@ -79,27 +77,22 @@ function Sidenav({ color }) {
           </NavLink>
         </Menu.Item>
 
-        {userRole === "admin" && (
-          <>
-            <Menu.Item key="users">
-              <NavLink to="/users">
-                <span className="icon">
-                  <UserOutlined style={{ color }} />
-                </span>
-                <span className="label">Người dùng</span>
-              </NavLink>
-            </Menu.Item>
-
-            <Menu.Item key="customers">
-              <NavLink to="/customers">
-                <span className="icon">
-                  <UserOutlined style={{ color }} />
-                </span>
-                <span className="label">Khách hàng</span>
-              </NavLink>
-            </Menu.Item>
-          </>
-        )}
+        <Menu.Item key="users">
+          <NavLink to="/users">
+            <span className="icon">
+              <UserOutlined style={{ color }} />
+            </span>
+            <span className="label">Người dùng</span>
+          </NavLink>
+        </Menu.Item>
+        <Menu.Item key="customers">
+          <NavLink to="/customers">
+            <span className="icon">
+              <UserOutlined style={{ color }} />
+            </span>
+            <span className="label">Khách hàng</span>
+          </NavLink>
+        </Menu.Item>
 
         <Menu.Item key="promotion">
           <NavLink to="/promotion">
@@ -109,7 +102,6 @@ function Sidenav({ color }) {
             <span className="label">Mã giảm giá</span>
           </NavLink>
         </Menu.Item>
-
         <Menu.Item key="bookpos">
           <NavLink to="/bookpos">
             <span className="icon">
@@ -118,6 +110,8 @@ function Sidenav({ color }) {
             <span className="label">Book POS</span>
           </NavLink>
         </Menu.Item>
+
+        
       </Menu>
     </>
   );

@@ -14,8 +14,6 @@ import Users from "./pages/Users";
 import Promotion from "./pages/Promotion";
 import Profile from "./pages/Profile";
 import SignIn from "./pages/SignIn";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import BookPOS from "./pages/BookPOS";
 import Customer from "./pages/Customer";
 
@@ -63,8 +61,7 @@ function App() {
       <Switch>
         {/* Public Routes */}
         <Route path="/sign-in" exact component={SignIn} />
-        <Route path="/forgot-password" exact component={ForgotPassword} />
-        <Route path="/reset-password" exact component={ResetPassword} />
+       
 
         {/* Nếu token không hợp lệ */}
         {!isValidToken ? (
