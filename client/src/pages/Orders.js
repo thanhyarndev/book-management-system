@@ -10,13 +10,19 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/order");
+      const res = await axios.get("http://localhost:3001/api/order", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setOrders(res.data);
       setFilteredOrders(res.data);
     } catch (err) {

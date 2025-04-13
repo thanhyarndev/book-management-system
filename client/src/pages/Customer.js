@@ -11,13 +11,19 @@ const Customer = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
 
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     fetchCustomers();
   }, []);
 
   const fetchCustomers = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/customer");
+      const res = await axios.get("http://localhost:3001/api/customer", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setCustomers(res.data);
       setFilteredCustomers(res.data);
     } catch (err) {
@@ -55,6 +61,11 @@ const Customer = () => {
         {
           ...editingCustomer,
           name: values.name,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       message.success("Cập nhật tên khách hàng thành công");

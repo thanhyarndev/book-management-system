@@ -28,9 +28,15 @@ const Books = () => {
   const [imageBase64, setImageBase64] = useState("");
   const [categories, setCategories] = useState([]);
 
+  const token = localStorage.getItem("token");
+
   const fetchBooks = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/book");
+      const res = await axios.get("http://localhost:3001/api/book", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setBooks(res.data);
       setFilteredBooks(res.data);
     } catch (err) {
@@ -40,7 +46,11 @@ const Books = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/category");
+      const res = await axios.get("http://localhost:3001/api/category", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setCategories(res.data);
     } catch (err) {
       message.error("Không thể tải danh sách thể loại");
@@ -74,10 +84,22 @@ const Books = () => {
 
     try {
       if (editingBook) {
-        await axios.put(`http://localhost:3001/api/book/${editingBook._id}`, payload);
+        await axios.put(
+          `http://localhost:3001/api/book/${editingBook._id}`,
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         message.success("Cập nhật sách thành công!");
       } else {
-        await axios.post("http://localhost:3001/api/book", payload);
+        await axios.post("http://localhost:3001/api/book", payload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         message.success("Thêm sách mới thành công!");
       }
       handleCancel();
@@ -89,7 +111,11 @@ const Books = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:3001/api/book/${id}`);
+      await axios.delete(`http://localhost:3001/api/book/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       message.success("Xóa sách thành công!");
       fetchBooks();
     } catch (err) {

@@ -28,8 +28,13 @@ const BookPOS = () => {
   const [isExistingCustomer, setIsExistingCustomer] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
   const [note, setNote] = useState("");
+  const [promotionCode, setPromotionCode] = useState("");
+  const [promotion, setPromotion] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   const pageSize = 18;
+  const token = localStorage.getItem("token");
+  const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     fetchProducts();
@@ -37,7 +42,7 @@ const BookPOS = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/book");
+      const res = await axios.get("http://localhost:3001/api/book", { headers });
       setAllProducts(res.data);
     } catch (err) {
       message.error("Lỗi khi tải danh sách sản phẩm");
@@ -56,7 +61,8 @@ const BookPOS = () => {
 
     try {
       const res = await axios.get(
-        `http://localhost:3001/api/customer/phone/${phone}`
+        `http://localhost:3001/api/customer/phone/${phone}`,
+        { headers }
       );
       const customer = res.data;
       setCustomerName(customer.name);
@@ -94,22 +100,50 @@ const BookPOS = () => {
     message.success("Đã xóa sản phẩm khỏi đơn hàng");
   };
 
-  const handleCheckout = async () => {
-    if (!selectedItems.length) {
-      return message.error("Đơn hàng trống!");
+  const handleCheckPromotion = async () => {
+    if (!promotionCode.trim()) {
+      return message.warning("Vui lòng nhập mã khuyến mãi");
     }
+
+    try {
+      const res = await axios.get(
+        `http://localhost:3001/api/promotion/find/by-code?code=${promotionCode.trim()}`,
+        { headers }
+      );
+      const promo = res.data;
+      const now = new Date();
+
+      if (promo.status !== "active") return message.error("Mã khuyến mãi không còn hoạt động");
+      if (new Date(promo.expiryDate) < now) return message.error("Mã khuyến mãi đã hết hạn");
+      if (promo.quantity <= 0) return message.error("Mã khuyến mãi đã hết lượt sử dụng");
+      if (totalAmount < promo.minOrderValue)
+        return message.error(`Đơn hàng phải từ ${promo.minOrderValue.toLocaleString()} ₫ để áp dụng`);
+
+      let discount = promo.type === "percentage"
+        ? (promo.value / 100) * totalAmount
+        : promo.value;
+
+      setPromotion(promo);
+      setDiscountAmount(discount);
+      message.success("Áp dụng mã khuyến mãi thành công!");
+    } catch {
+      message.error("Không tìm thấy mã khuyến mãi");
+      setPromotion(null);
+      setDiscountAmount(0);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!selectedItems.length) return message.error("Đơn hàng trống!");
 
     const isValidPhone = validateVietnamPhone(phone);
-
-    if (isValidPhone && !customerName.trim()) {
-      return message.error("Vui lòng nhập tên khách hàng");
-    }
+    if (isValidPhone && !customerName.trim()) return message.error("Vui lòng nhập tên khách hàng");
 
     const payload = {
       customerName: isValidPhone ? customerName : "Khách lẻ",
       customerPhone: isValidPhone ? phone : "0000000000",
       note,
-      totalAmount,
+      totalAmount: totalAmount - discountAmount,
       items: selectedItems.map((item) => ({
         product: item._id,
         title: item.title,
@@ -120,13 +154,15 @@ const BookPOS = () => {
     };
 
     try {
-      await axios.post("http://localhost:3001/api/order", payload);
+      await axios.post("http://localhost:3001/api/order", payload, { headers });
 
       await Promise.all(
         selectedItems.map((item) =>
-          axios.put(`http://localhost:3001/api/book/${item._id}/decrease`, {
-            quantity: item.quantity,
-          })
+          axios.put(
+            `http://localhost:3001/api/book/${item._id}/decrease`,
+            { quantity: item.quantity },
+            { headers }
+          )
         )
       );
 
@@ -136,6 +172,9 @@ const BookPOS = () => {
       setCustomerName("");
       setIsExistingCustomer(false);
       setNote("");
+      setPromotionCode("");
+      setPromotion(null);
+      setDiscountAmount(0);
       fetchProducts();
     } catch (err) {
       console.error(err);
@@ -212,6 +251,20 @@ const BookPOS = () => {
           size="small"
         />
         <div style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <Input
+              placeholder="Nhập mã khuyến mãi"
+              value={promotionCode}
+              onChange={(e) => setPromotionCode(e.target.value)}
+            />
+            <Button onClick={handleCheckPromotion}>Áp dụng</Button>
+          </div>
+          {promotion && (
+            <div style={{ color: "green", marginBottom: 8 }}>
+              Mã giảm: {promotion.code} ({promotion.type === "percentage" ? `${promotion.value}%` : `${promotion.value.toLocaleString()} ₫`})<br />
+              Đã giảm: <b>{discountAmount.toLocaleString()} ₫</b>
+            </div>
+          )}
           <Input.TextArea
             placeholder="Ghi chú đơn hàng..."
             rows={2}
@@ -220,7 +273,11 @@ const BookPOS = () => {
           />
           <div style={{ marginTop: 8, fontWeight: "bold" }}>
             Tổng sản phẩm: {totalQuantity} | Tổng tiền hàng:{" "}
-            {totalAmount.toLocaleString()} ₫
+            {totalAmount.toLocaleString()} ₫ <br />
+            Giảm giá: -{discountAmount.toLocaleString()} ₫ <br />
+            <span style={{ color: "blue" }}>
+              Tổng thanh toán: {(totalAmount - discountAmount).toLocaleString()} ₫
+            </span>
           </div>
         </div>
       </div>

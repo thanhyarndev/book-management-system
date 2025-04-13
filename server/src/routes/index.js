@@ -4,6 +4,7 @@ const promotionRouter = require("./promotion")
 const userRouter = require("./user");
 const customerRouter = require("./customer");
 const orderRouter = require("./order");
+const dashboardRouter = require("./dashboard");
 
 function route(app) {
   app.use("/api/category", categoryRouter);
@@ -12,6 +13,7 @@ function route(app) {
   app.use("/api/user", userRouter);
   app.use("/api/customer", customerRouter);
   app.use("/api/order",  orderRouter);
+  app.use("/api/dashboard",dashboardRouter);
 }
 
 module.exports = route;

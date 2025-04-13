@@ -28,9 +28,15 @@ const Users = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
+  const token = localStorage.getItem("token");
+
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/user");
+      const res = await axios.get("http://localhost:3001/api/user", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setUsers(res.data);
       setFilteredUsers(res.data);
     } catch (err) {
@@ -57,10 +63,18 @@ const Users = () => {
   const handleSave = async (values) => {
     try {
       if (editingUser) {
-        await axios.put(`http://localhost:3001/api/user/${editingUser._id}`, values);
+        await axios.put(`http://localhost:3001/api/user/${editingUser._id}`, values, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         message.success("Cập nhật người dùng thành công!");
       } else {
-        await axios.post("http://localhost:3001/api/user", values);
+        await axios.post("http://localhost:3001/api/user", values, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         message.success("Thêm người dùng mới thành công!");
       }
       handleCancel();
@@ -72,7 +86,11 @@ const Users = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:3001/api/user/${id}`);
+      await axios.delete(`http://localhost:3001/api/user/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       message.success("Xóa người dùng thành công!");
       fetchUsers();
     } catch (err) {
@@ -84,7 +102,9 @@ const Users = () => {
     const text = e.target.value.toLowerCase();
     setSearchText(text);
     const filtered = users.filter(
-      (u) => u.email.toLowerCase().includes(text) || u.firstName.toLowerCase().includes(text)
+      (u) =>
+        u.email.toLowerCase().includes(text) ||
+        u.firstName.toLowerCase().includes(text)
     );
     setFilteredUsers(filtered);
   };

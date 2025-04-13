@@ -10,6 +10,21 @@ class PromotionController {
     }
   }
 
+  async getByCode(req, res) {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).json({ message: "Thiếu mã khuyến mãi" });
+    }
+  
+    try {
+      const promotion = await Promotion.findOne({ code });
+      if (!promotion) return res.status(404).json({ message: "Không tìm thấy khuyến mãi với mã này" });
+      res.status(200).json(promotion);
+    } catch (err) {
+      res.status(500).json({ message: "Lỗi khi tìm khuyến mãi theo mã", err });
+    }
+  }
+
   async getById(req, res) {
     try {
       const promotion = await Promotion.findById(req.params.id);

@@ -1,21 +1,25 @@
 const express = require("express");
 const router = express.Router();
-
 const categoryController = require("../controller/categoryController");
 
-// GET: Lấy tất cả danh mục
-router.get("/", categoryController.getAll);
+const {
+  authenticateToken,
+  authorizeRoles,
+} = require("../middleware/authMiddleware");
 
-// GET: Tìm danh mục theo ID
-router.get("/:id", categoryController.getById);
+// GET: Lấy tất cả danh mục - nhân viên và admin đều được
+router.get("/", authenticateToken, authorizeRoles("admin", "employee"), categoryController.getAll);
 
-// POST: Tạo danh mục mới
-router.post("/", categoryController.create);
+// GET: Lấy danh mục theo ID - nhân viên và admin đều được
+router.get("/:id", authenticateToken, authorizeRoles("admin", "employee"), categoryController.getById);
 
-// PUT: Cập nhật danh mục
-router.put("/:id", categoryController.update);
+// POST: Tạo danh mục mới - chỉ admin
+router.post("/", authenticateToken, authorizeRoles("admin"), categoryController.create);
 
-// DELETE: Xoá danh mục
-router.delete("/:id", categoryController.remove);
+// PUT: Cập nhật danh mục - chỉ admin
+router.put("/:id", authenticateToken, authorizeRoles("admin"), categoryController.update);
+
+// DELETE: Xoá danh mục - chỉ admin
+router.delete("/:id", authenticateToken, authorizeRoles("admin"), categoryController.remove);
 
 module.exports = router;

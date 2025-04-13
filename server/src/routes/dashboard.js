@@ -1,9 +1,19 @@
 const express = require("express");
 const router = express.Router();
-
 const dashboard = require("../controller/dashboard");
 
-// Lấy tất nhà khách hàng
-router.get("/get-datas", dashboard.getDatas);
+// Middleware xác thực & phân quyền
+const {
+  authenticateToken,
+  authorizeRoles,
+} = require("../middleware/authMiddleware");
+
+// Lấy dữ liệu tổng quan cho dashboard
+router.get(
+  "/get-datas",
+  authenticateToken,
+  authorizeRoles("admin", "employee"),
+  dashboard.getDatas
+);
 
 module.exports = router;

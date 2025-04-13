@@ -25,9 +25,15 @@ const Categories = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
 
+  const token = localStorage.getItem("token");
+
   const fetchCategories = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/category");
+      const res = await axios.get("http://localhost:3001/api/category", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setCategories(res.data);
       setFilteredCategories(res.data);
     } catch (err) {
@@ -56,11 +62,20 @@ const Categories = () => {
       if (editingCategory) {
         await axios.put(
           `http://localhost:3001/api/category/${editingCategory._id}`,
-          values
+          values,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         message.success("Cập nhật thể loại thành công!");
       } else {
-        await axios.post("http://localhost:3001/api/category", values);
+        await axios.post("http://localhost:3001/api/category", values, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         message.success("Thêm thể loại mới thành công!");
       }
       handleCancel();
@@ -72,7 +87,11 @@ const Categories = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:3001/api/category/${id}`);
+      await axios.delete(`http://localhost:3001/api/category/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       message.success("Xóa thể loại thành công!");
       fetchCategories();
     } catch (err) {

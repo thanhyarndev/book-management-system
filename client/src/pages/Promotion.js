@@ -30,9 +30,13 @@ const Promotion = () => {
   const [editingPromotion, setEditingPromotion] = useState(null);
   const [searchText, setSearchText] = useState("");
 
+  const token = localStorage.getItem("token");
+
   const fetchPromotions = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/promotion");
+      const res = await axios.get("http://localhost:3001/api/promotion", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setPromotions(res.data);
       setFilteredPromotions(res.data);
     } catch (err) {
@@ -73,11 +77,16 @@ const Promotion = () => {
       if (editingPromotion) {
         await axios.put(
           `http://localhost:3001/api/promotion/${editingPromotion._id}`,
-          payload
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
         message.success("Cập nhật khuyến mãi thành công!");
       } else {
-        await axios.post("http://localhost:3001/api/promotion", payload);
+        await axios.post("http://localhost:3001/api/promotion", payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         message.success("Thêm khuyến mãi mới thành công!");
       }
       handleCancel();
@@ -89,7 +98,9 @@ const Promotion = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:3001/api/promotion/${id}`);
+      await axios.delete(`http://localhost:3001/api/promotion/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       message.success("Xóa khuyến mãi thành công!");
       fetchPromotions();
     } catch (err) {
@@ -110,50 +121,42 @@ const Promotion = () => {
     {
       title: "Mã",
       dataIndex: "code",
-      key: "code",
     },
     {
       title: "Mô tả",
       dataIndex: "description",
-      key: "description",
     },
     {
       title: "Loại",
       dataIndex: "type",
-      key: "type",
       render: (type) => (type === "percentage" ? "%" : "VNĐ"),
     },
     {
       title: "Giá trị",
       dataIndex: "value",
-      key: "value",
     },
     {
       title: "Giá trị đơn tối thiểu",
       dataIndex: "minOrderValue",
-      key: "minOrderValue",
     },
     {
       title: "Số lượt áp dụng",
       dataIndex: "quantity",
-      key: "quantity",
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
-      key: "status",
-      render: (status) => status === "active" ? "Hoạt động" : "Vô hiệu hoá",
+      render: (status) => (status === "active" ? "Hoạt động" : "Vô hiệu hoá"),
     },
     {
       title: "Hạn sử dụng",
       dataIndex: "expiryDate",
-      key: "expiryDate",
       render: (date) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
       title: "Hành động",
       key: "action",
-      render: (text, record) => (
+      render: (_, record) => (
         <Space>
           <Button
             icon={<EditOutlined />}
@@ -177,7 +180,13 @@ const Promotion = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+      <div
+        style={{
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
         <Input
           placeholder="Tìm kiếm theo mã..."
           prefix={<SearchOutlined />}
